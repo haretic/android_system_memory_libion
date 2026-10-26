@@ -46,9 +46,13 @@ int ion_is_legacy(int fd) {
     if (version == ION_VERSION_UNKNOWN) {
         /**
           * Check for FREE IOCTL here; it is available only in the old
-          * kernels, not the new ones.
+          * kernels, not the new ones. An old kernel refuses the null
+          * handle, the answer looked for, so it is no error to log.
           */
-        int err = ion_free(fd, (ion_user_handle_t)0);
+        struct ion_handle_data data = {
+            .handle = (ion_user_handle_t)0,
+        };
+        int err = ioctl(fd, ION_IOC_FREE, &data) < 0 ? -errno : 0;
         version = (err == -ENOTTY) ? ION_VERSION_MODERN : ION_VERSION_LEGACY;
         atomic_store_explicit(&g_ion_version, version, memory_order_release);
     }
